@@ -1,4 +1,5 @@
-import type { Deal } from './types'
+import { translate } from './i18n'
+import type { Deal, Language } from './types'
 
 export function isDealActiveOn(deal: Deal, date: Date): boolean {
   if (!deal.enabled) return false
@@ -19,17 +20,25 @@ export function activeDealsOn(deals: Deal[], date: Date): Deal[] {
   return deals.filter((d) => isDealActiveOn(d, date))
 }
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+export const DAY_INDEXES = [0, 1, 2, 3, 4, 5, 6]
 
-export function describeDealRule(deal: Deal): string {
+export function dayName(language: Language, day: number): string {
+  return translate(language, `day.${day}`)
+}
+
+export function dayAbbr(language: Language, day: number): string {
+  return translate(language, `day.abbr.${day}`)
+}
+
+export function describeDealRule(deal: Deal, language: Language): string {
   switch (deal.rule.type) {
     case 'always':
-      return 'Ongoing'
+      return translate(language, 'deal.rule.ongoing')
     case 'weekly':
-      return `Every ${deal.rule.days.map((d) => DAY_NAMES[d]).join(', ')}`
+      return translate(language, 'deal.rule.every', {
+        days: deal.rule.days.map((d) => dayName(language, d)).join('、'),
+      })
     case 'dateRange':
       return `${deal.rule.start} – ${deal.rule.end}`
   }
 }
-
-export { DAY_NAMES }

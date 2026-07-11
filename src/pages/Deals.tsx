@@ -3,9 +3,10 @@ import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { PageHeader } from '../components/PageHeader'
 import { db } from '../lib/db'
-import { DAY_NAMES, describeDealRule } from '../lib/deals'
+import { DAY_INDEXES, dayAbbr, describeDealRule } from '../lib/deals'
 import type { Deal, DealRule } from '../lib/types'
 import { KNOWN_BRANDS } from '../lib/types'
+import { useLanguage } from '../lib/useLanguage'
 
 interface DealForm {
   brand: string
@@ -38,6 +39,7 @@ function buildRule(form: DealForm): DealRule {
 }
 
 export default function Deals() {
+  const { t, language } = useLanguage()
   const deals = useLiveQuery(() => db.deals.toArray(), [])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<DealForm>(emptyForm())
@@ -76,13 +78,17 @@ export default function Deals() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this deal reminder?')) return
+    if (!confirm(t('deals.deleteConfirm'))) return
     await db.deals.delete(id)
   }
 
   return (
     <div>
-      <PageHeader title="Deals" subtitle="Brand discount reminders" />
+      <PageHeader title={t('deals.title')} subtitle={t('deals.subtitle')} />
+
+      <div className="px-4">
+        <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">{t('deals.disclaimer')}</p>
+      </div>
 
       <div className="px-4 space-y-2">
         {(deals ?? []).map((deal) => (
@@ -100,7 +106,7 @@ export default function Deals() {
                   {deal.brand} — {deal.title}
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                  {describeDealRule(deal)}
+                  {describeDealRule(deal, language)}
                 </p>
                 {deal.notes && (
                   <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">{deal.notes}</p>
@@ -111,22 +117,20 @@ export default function Deals() {
                   onClick={() => toggleEnabled(deal)}
                   className="rounded-md bg-neutral-100 dark:bg-neutral-800 px-2 py-1 text-xs font-medium"
                 >
-                  {deal.enabled ? 'Disable' : 'Enable'}
+                  {deal.enabled ? t('deals.disable') : t('deals.enable')}
                 </button>
                 <button
                   onClick={() => handleDelete(deal.id)}
                   className="rounded-md bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-2 py-1 text-xs font-medium"
                 >
-                  Delete
+                  {t('deals.delete')}
                 </button>
               </div>
             </div>
           </div>
         ))}
         {deals && deals.length === 0 && (
-          <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 mt-8">
-            No deals yet. Add one below.
-          </p>
+          <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 mt-8">{t('deals.empty')}</p>
         )}
       </div>
 
@@ -136,29 +140,29 @@ export default function Deals() {
             onClick={() => setShowForm(true)}
             className="w-full rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 text-sm font-medium py-2.5 text-neutral-600 dark:text-neutral-400"
           >
-            + Add deal reminder
+            {t('deals.addButton')}
           </button>
         ) : (
           <form onSubmit={handleSave} className="space-y-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
             <div>
-              <label className="block text-xs font-medium mb-1">Brand</label>
+              <label className="block text-xs font-medium mb-1">{t('deals.brand')}</label>
               <select
                 value={form.brand}
                 onChange={(e) => update('brand', e.target.value)}
                 className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
               >
-                <option value="">Select brand…</option>
+                <option value="">{t('add.selectBrand')}</option>
                 {KNOWN_BRANDS.map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
                 ))}
-                <option value="Other">Other…</option>
+                <option value="Other">{t('add.other')}</option>
               </select>
               {(form.brand === 'Other' || !form.brand) && (
                 <input
                   type="text"
-                  placeholder="Enter brand name"
+                  placeholder={t('add.enterBrandName')}
                   value={form.customBrand}
                   onChange={(e) => update('customBrand', e.target.value)}
                   className="mt-2 w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
@@ -167,10 +171,10 @@ export default function Deals() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-1">Deal title</label>
+              <label className="block text-xs font-medium mb-1">{t('deals.dealTitle')}</label>
               <input
                 type="text"
-                placeholder="e.g. Free petrol upgrade"
+                placeholder={t('deals.dealTitlePlaceholder')}
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
                 className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
@@ -178,24 +182,24 @@ export default function Deals() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-1">When</label>
+              <label className="block text-xs font-medium mb-1">{t('deals.when')}</label>
               <select
                 value={form.ruleType}
                 onChange={(e) => update('ruleType', e.target.value as DealRule['type'])}
                 className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
               >
-                <option value="weekly">Specific day(s) of week</option>
-                <option value="dateRange">Date range</option>
-                <option value="always">Ongoing / always</option>
+                <option value="weekly">{t('deals.weekly')}</option>
+                <option value="dateRange">{t('deals.dateRange')}</option>
+                <option value="always">{t('deals.always')}</option>
               </select>
             </div>
 
             {form.ruleType === 'weekly' && (
               <div className="flex flex-wrap gap-1.5">
-                {DAY_NAMES.map((name, idx) => (
+                {DAY_INDEXES.map((idx) => (
                   <button
                     type="button"
-                    key={name}
+                    key={idx}
                     onClick={() => toggleDay(idx)}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                       form.days.includes(idx)
@@ -203,7 +207,7 @@ export default function Deals() {
                         : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300'
                     }`}
                   >
-                    {name.slice(0, 3)}
+                    {dayAbbr(language, idx)}
                   </button>
                 ))}
               </div>
@@ -227,7 +231,7 @@ export default function Deals() {
             )}
 
             <div>
-              <label className="block text-xs font-medium mb-1">Notes (optional)</label>
+              <label className="block text-xs font-medium mb-1">{t('deals.notes')}</label>
               <textarea
                 value={form.notes}
                 onChange={(e) => update('notes', e.target.value)}
@@ -241,7 +245,7 @@ export default function Deals() {
                 type="submit"
                 className="flex-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2"
               >
-                Save deal
+                {t('deals.save')}
               </button>
               <button
                 type="button"
@@ -251,7 +255,7 @@ export default function Deals() {
                 }}
                 className="flex-1 rounded-md bg-neutral-200 dark:bg-neutral-800 text-sm font-medium py-2"
               >
-                Cancel
+                {t('deals.cancel')}
               </button>
             </div>
           </form>

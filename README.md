@@ -16,12 +16,22 @@ was built from.
   spend chart.
 - **History** — edit/delete past fill-ups, filter by brand, JSON export/import
   for backup.
-- **Deals** — user-managed brand discount reminders (e.g. "Caltex: free
-  petrol upgrade every Saturday") with a today's-deal banner.
+- **Deals** — brand discount reminders with a today's-deal banner. Seeded
+  with real, sourced Hong Kong promos (Esso Smiles, Caltex 加FUN, Shell GO+,
+  Sinopec, PetroChina, HSBC EveryMile, Dah Sing MyAuto, Amex Platinum) as of
+  July 2026 — edit, disable, or add your own; promo terms change often, so
+  verify current details in each brand's official app.
+- **繁體中文** — full Traditional Chinese translation; toggle with the
+  EN/繁中 button in the top-right corner. Preference is saved locally.
 
 All data is stored locally in the browser (IndexedDB via Dexie) — no
 backend, no account, works offline once loaded, installable to your phone's
-home screen.
+home screen. The app requests persistent storage on load (via
+`navigator.storage.persist()`) to reduce the risk of the browser evicting
+data under storage pressure. Because everything lives only in this browser
+profile, use History → Export regularly to save a JSON backup (History
+shows a reminder if you haven't backed up in a while, or ever); Import
+restores from that file.
 
 ## Development
 

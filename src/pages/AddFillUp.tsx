@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader'
 import { db } from '../lib/db'
 import { extractReceipt } from '../lib/ocr'
 import { KNOWN_BRANDS } from '../lib/types'
+import { useLanguage } from '../lib/useLanguage'
 
 interface DraftForm {
   brand: string
@@ -36,6 +37,7 @@ function emptyForm(): DraftForm {
 }
 
 export default function AddFillUp() {
+  const { t } = useLanguage()
   const [form, setForm] = useState<DraftForm>(emptyForm())
   const [receiptBlob, setReceiptBlob] = useState<Blob | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -69,7 +71,7 @@ export default function AddFillUp() {
       }))
       setOcrConfidence(draft.confidence)
     } catch (err) {
-      setError('Could not read the receipt automatically. Please fill in the details manually.')
+      setError(t('add.ocrError'))
       console.error(err)
     } finally {
       setOcrRunning(false)
@@ -85,7 +87,7 @@ export default function AddFillUp() {
   const odometerNum = Number.parseFloat(form.odometer)
   const odometerWarning =
     lastFillUp && !Number.isNaN(odometerNum) && odometerNum <= lastFillUp.odometer
-      ? `This is not higher than your last recorded odometer reading (${lastFillUp.odometer.toLocaleString()} km).`
+      ? t('add.odometerWarning', { km: lastFillUp.odometer.toLocaleString() })
       : null
 
   async function handleSubmit(e: React.FormEvent) {
@@ -97,19 +99,19 @@ export default function AddFillUp() {
     const odometer = Number.parseFloat(form.odometer)
 
     if (!resolvedBrand) {
-      setError('Please select or enter a gas brand.')
+      setError(t('add.errBrand'))
       return
     }
     if (Number.isNaN(litres) || litres <= 0) {
-      setError('Please enter a valid number of litres.')
+      setError(t('add.errLitres'))
       return
     }
     if (Number.isNaN(netAmount) || netAmount <= 0) {
-      setError('Please enter a valid net amount paid.')
+      setError(t('add.errNetAmount'))
       return
     }
     if (Number.isNaN(odometer) || odometer <= 0) {
-      setError('Please enter a valid odometer reading.')
+      setError(t('add.errOdometer'))
       return
     }
 
@@ -126,7 +128,7 @@ export default function AddFillUp() {
       createdAt: new Date().toISOString(),
     })
 
-    setSaveMessage('Fill-up saved!')
+    setSaveMessage(t('add.saved'))
     setForm(emptyForm())
     setReceiptBlob(null)
     setPreviewUrl(null)
@@ -139,18 +141,18 @@ export default function AddFillUp() {
     ocrConfidence && field in ocrConfidence
       ? ocrConfidence[field]
         ? null
-        : <span className="ml-1.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">verify</span>
+        : <span className="ml-1.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">{t('add.verify')}</span>
       : null
 
   return (
     <div>
-      <PageHeader title="Add fill-up" subtitle="Upload a receipt or enter details manually" />
+      <PageHeader title={t('add.title')} subtitle={t('add.subtitle')} />
       <DealBanner />
 
       <div className="px-4 mt-4 space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1.5" htmlFor="receipt-upload">
-            Receipt photo (optional)
+            {t('add.receiptLabel')}
           </label>
           <input
             ref={fileInputRef}
@@ -164,7 +166,7 @@ export default function AddFillUp() {
           {previewUrl && (
             <img src={previewUrl} alt="Receipt preview" className="mt-2 max-h-48 rounded-lg border border-neutral-200 dark:border-neutral-800" />
           )}
-          {ocrRunning && <p className="mt-2 text-sm text-neutral-500">Reading receipt…</p>}
+          {ocrRunning && <p className="mt-2 text-sm text-neutral-500">{t('add.reading')}</p>}
         </div>
 
         {error && (
@@ -181,7 +183,7 @@ export default function AddFillUp() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1.5" htmlFor="brand">
-              Brand {confidenceBadge('brand')}
+              {t('add.brand')} {confidenceBadge('brand')}
             </label>
             <select
               id="brand"
@@ -189,18 +191,18 @@ export default function AddFillUp() {
               onChange={(e) => update('brand', e.target.value)}
               className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
             >
-              <option value="">Select brand…</option>
+              <option value="">{t('add.selectBrand')}</option>
               {KNOWN_BRANDS.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
               ))}
-              <option value="Other">Other…</option>
+              <option value="Other">{t('add.other')}</option>
             </select>
             {(form.brand === 'Other' || !form.brand) && (
               <input
                 type="text"
-                placeholder="Enter brand name"
+                placeholder={t('add.enterBrandName')}
                 value={form.customBrand}
                 onChange={(e) => update('customBrand', e.target.value)}
                 className="mt-2 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
@@ -211,7 +213,7 @@ export default function AddFillUp() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1.5" htmlFor="date">
-                Date {confidenceBadge('date')}
+                {t('add.date')} {confidenceBadge('date')}
               </label>
               <input
                 id="date"
@@ -223,14 +225,14 @@ export default function AddFillUp() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1.5" htmlFor="litres">
-                Litres {confidenceBadge('litres')}
+                {t('add.litres')} {confidenceBadge('litres')}
               </label>
               <input
                 id="litres"
                 type="number"
                 step="0.01"
                 inputMode="decimal"
-                placeholder="e.g. 40.50"
+                placeholder={t('add.litresPlaceholder')}
                 value={form.litres}
                 onChange={(e) => update('litres', e.target.value)}
                 className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
@@ -240,33 +242,31 @@ export default function AddFillUp() {
 
           <div>
             <label className="block text-sm font-medium mb-1.5" htmlFor="netAmount">
-              Net amount paid {confidenceBadge('netAmount')}
+              {t('add.netAmount')} {confidenceBadge('netAmount')}
             </label>
             <input
               id="netAmount"
               type="number"
               step="0.01"
               inputMode="decimal"
-              placeholder="Final amount after all discounts"
+              placeholder={t('add.netAmountPlaceholder')}
               value={form.netAmount}
               onChange={(e) => update('netAmount', e.target.value)}
               className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
             />
-            <p className="mt-1 text-xs text-neutral-500">
-              Use the final amount you actually paid — ignore subtotal/discount lines.
-            </p>
+            <p className="mt-1 text-xs text-neutral-500">{t('add.netAmountHint')}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1.5" htmlFor="odometer">
-              Odometer (km)
+              {t('add.odometer')}
             </label>
             <input
               id="odometer"
               type="number"
               step="1"
               inputMode="numeric"
-              placeholder="Current odometer reading"
+              placeholder={t('add.odometerPlaceholder')}
               value={form.odometer}
               onChange={(e) => update('odometer', e.target.value)}
               className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
@@ -278,7 +278,7 @@ export default function AddFillUp() {
 
           <div>
             <label className="block text-sm font-medium mb-1.5" htmlFor="stationName">
-              Station name (optional)
+              {t('add.stationName')}
             </label>
             <input
               id="stationName"
@@ -296,16 +296,14 @@ export default function AddFillUp() {
               onChange={(e) => update('missedPrevious', e.target.checked)}
               className="mt-0.5"
             />
-            <span>
-              I missed logging a fill-up before this one (excludes this interval from cost-per-km stats)
-            </span>
+            <span>{t('add.missedPrevious')}</span>
           </label>
 
           <button
             type="submit"
             className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 text-sm transition-colors"
           >
-            Save fill-up
+            {t('add.save')}
           </button>
         </form>
       </div>

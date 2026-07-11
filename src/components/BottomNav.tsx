@@ -1,13 +1,16 @@
 import { NavLink } from 'react-router-dom'
+import { useLanguage } from '../lib/useLanguage'
 
 const TABS = [
-  { to: '/', label: 'Add', icon: '⛽' },
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/history', label: 'History', icon: '🕘' },
-  { to: '/deals', label: 'Deals', icon: '🏷️' },
+  { to: '/', labelKey: 'nav.add', icon: '⛽' },
+  { to: '/dashboard', labelKey: 'nav.dashboard', icon: '📊' },
+  { to: '/history', labelKey: 'nav.history', icon: '🕘' },
+  { to: '/deals', labelKey: 'nav.deals', icon: '🏷️' },
 ]
 
 export function BottomNav() {
+  const { t } = useLanguage()
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-md grid grid-cols-4">
@@ -25,7 +28,7 @@ export function BottomNav() {
             }
           >
             <span className="text-lg leading-none">{tab.icon}</span>
-            {tab.label}
+            {t(tab.labelKey)}
           </NavLink>
         ))}
       </div>

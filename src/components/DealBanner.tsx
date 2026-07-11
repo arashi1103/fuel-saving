@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
 import { activeDealsOn } from '../lib/deals'
+import { useLanguage } from '../lib/useLanguage'
 
 export function DealBanner() {
   const deals = useLiveQuery(() => db.deals.toArray(), [])
+  const { t } = useLanguage()
   const today = new Date()
   const active = deals ? activeDealsOn(deals, today) : []
 
@@ -19,7 +21,7 @@ export function DealBanner() {
           <span className="text-lg leading-none">🎉</span>
           <div>
             <p className="font-semibold text-emerald-800 dark:text-emerald-300">
-              Today: {deal.brand} — {deal.title}
+              {t('dealBanner.today', { brand: deal.brand, title: deal.title })}
             </p>
             {deal.notes && (
               <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">{deal.notes}</p>

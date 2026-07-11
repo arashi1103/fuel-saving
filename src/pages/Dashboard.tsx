@@ -22,6 +22,7 @@ import {
   computeOverallCostPerKm,
   computeOverallNetPricePerLitre,
 } from '../lib/stats'
+import { useLanguage } from '../lib/useLanguage'
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -34,6 +35,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage()
   const fillUps = useLiveQuery(() => db.fillUps.toArray(), [])
 
   const overallCostPerKm = useMemo(() => (fillUps ? computeOverallCostPerKm(fillUps) : null), [fillUps])
@@ -59,10 +61,10 @@ export default function Dashboard() {
   if (fillUps && fillUps.length === 0) {
     return (
       <div>
-        <PageHeader title="Dashboard" />
+        <PageHeader title={t('dashboard.title')} />
         <DealBanner />
         <div className="px-4 mt-8 text-center text-neutral-500 dark:text-neutral-400 text-sm">
-          No fill-ups logged yet. Add your first one on the Add tab to see your stats here.
+          {t('dashboard.empty')}
         </div>
       </div>
     )
@@ -70,16 +72,16 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" />
+      <PageHeader title={t('dashboard.title')} />
       <DealBanner />
 
       <div className="px-4 mt-4 grid grid-cols-2 gap-3">
         <StatCard
-          label="Cost per km"
+          label={t('dashboard.costPerKm')}
           value={overallCostPerKm != null ? `$${overallCostPerKm.toFixed(3)}` : '—'}
         />
         <StatCard
-          label="Avg net price / L"
+          label={t('dashboard.avgNetPrice')}
           value={overallNetPricePerLitre != null ? `$${overallNetPricePerLitre.toFixed(2)}` : '—'}
         />
       </div>
@@ -87,17 +89,22 @@ export default function Dashboard() {
       {brandComparison && (
         <div className="mx-4 mt-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-3.5 text-sm">
           <p className="font-semibold text-emerald-800 dark:text-emerald-300">
-            💡 {brandComparison.cheapest.brand} averages ${brandComparison.cheapest.netPricePerLitre.toFixed(2)}/L vs{' '}
-            {brandComparison.mostExpensive.brand} at ${brandComparison.mostExpensive.netPricePerLitre.toFixed(2)}/L
+            💡{' '}
+            {t('dashboard.insight', {
+              cheapBrand: brandComparison.cheapest.brand,
+              cheapPrice: brandComparison.cheapest.netPricePerLitre.toFixed(2),
+              expBrand: brandComparison.mostExpensive.brand,
+              expPrice: brandComparison.mostExpensive.netPricePerLitre.toFixed(2),
+            })}
           </p>
           <p className="text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">
-            That's roughly ${brandComparison.savingsPerTank.toFixed(2)} saved per 40L tank.
+            {t('dashboard.insightSub', { savings: brandComparison.savingsPerTank.toFixed(2) })}
           </p>
         </div>
       )}
 
       <div className="px-4 mt-5">
-        <h2 className="text-sm font-semibold mb-2">Average net price per litre, by brand</h2>
+        <h2 className="text-sm font-semibold mb-2">{t('dashboard.byBrand')}</h2>
         <div className="space-y-1.5">
           {brandStats.map((b) => (
             <div
@@ -106,7 +113,11 @@ export default function Dashboard() {
             >
               <span className="font-medium">{b.brand}</span>
               <span className="text-neutral-500 dark:text-neutral-400">
-                ${b.netPricePerLitre.toFixed(2)}/L · {b.fillUpCount} fill-up{b.fillUpCount === 1 ? '' : 's'}
+                ${b.netPricePerLitre.toFixed(2)}/L ·{' '}
+                {t(
+                  b.fillUpCount === 1 ? 'dashboard.fillUpCount.one' : 'dashboard.fillUpCount.other',
+                  { count: b.fillUpCount },
+                )}
               </span>
             </div>
           ))}
@@ -115,7 +126,7 @@ export default function Dashboard() {
 
       {consumptionSeries.length > 0 && (
         <div className="px-4 mt-6">
-          <h2 className="text-sm font-semibold mb-2">Consumption trend (L/100km)</h2>
+          <h2 className="text-sm font-semibold mb-2">{t('dashboard.consumptionTrend')}</h2>
           <div className="h-48 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={consumptionSeries}>
@@ -132,7 +143,7 @@ export default function Dashboard() {
 
       {monthlySpendSeries.length > 0 && (
         <div className="px-4 mt-6 mb-6">
-          <h2 className="text-sm font-semibold mb-2">Monthly spend</h2>
+          <h2 className="text-sm font-semibold mb-2">{t('dashboard.monthlySpend')}</h2>
           <div className="h-48 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlySpendSeries}>

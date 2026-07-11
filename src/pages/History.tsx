@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
-import { db } from '../lib/db'
+import { db, getSettings, getSettingsLive } from '../lib/db'
 import type { FillUp } from '../lib/types'
+import { useLanguage } from '../lib/useLanguage'
 
 function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
+  const { t } = useLanguage()
   const [brand, setBrand] = useState(fillUp.brand)
   const [date, setDate] = useState(fillUp.date)
   const [litres, setLitres] = useState(String(fillUp.litres))
@@ -29,7 +31,7 @@ function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
         value={brand}
         onChange={(e) => setBrand(e.target.value)}
         className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
-        placeholder="Brand"
+        placeholder={t('history.placeholderBrand')}
       />
       <div className="grid grid-cols-2 gap-2">
         <input
@@ -44,7 +46,7 @@ function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
           value={odometer}
           onChange={(e) => setOdometer(e.target.value)}
           className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
-          placeholder="Odometer"
+          placeholder={t('history.placeholderOdometer')}
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -54,7 +56,7 @@ function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
           value={litres}
           onChange={(e) => setLitres(e.target.value)}
           className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
-          placeholder="Litres"
+          placeholder={t('history.placeholderLitres')}
         />
         <input
           type="number"
@@ -62,7 +64,7 @@ function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
           value={netAmount}
           onChange={(e) => setNetAmount(e.target.value)}
           className="rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm"
-          placeholder="Net amount"
+          placeholder={t('history.placeholderNetAmount')}
         />
       </div>
       <div className="flex gap-2">
@@ -70,21 +72,25 @@ function EditRow({ fillUp, onClose }: { fillUp: FillUp; onClose: () => void }) {
           onClick={save}
           className="flex-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-1.5"
         >
-          Save
+          {t('history.save')}
         </button>
         <button
           onClick={onClose}
           className="flex-1 rounded-md bg-neutral-200 dark:bg-neutral-800 text-sm font-medium py-1.5"
         >
-          Cancel
+          {t('history.cancel')}
         </button>
       </div>
     </div>
   )
 }
 
+const STALE_BACKUP_DAYS = 14
+
 export default function History() {
+  const { t } = useLanguage()
   const fillUps = useLiveQuery(() => db.fillUps.orderBy('date').reverse().toArray(), [])
+  const settings = useLiveQuery(getSettingsLive, [])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [brandFilter, setBrandFilter] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -100,8 +106,15 @@ export default function History() {
     [fillUps, brandFilter],
   )
 
+  const backupStatus = useMemo(() => {
+    if (!fillUps || fillUps.length === 0 || !settings) return null
+    if (!settings.lastBackupAt) return 'never' as const
+    const daysSince = (Date.now() - new Date(settings.lastBackupAt).getTime()) / (1000 * 60 * 60 * 24)
+    return daysSince >= STALE_BACKUP_DAYS ? ('stale' as const) : null
+  }, [fillUps, settings])
+
   async function handleDelete(id: string) {
-    if (!confirm('Delete this fill-up?')) return
+    if (!confirm(t('history.deleteConfirm'))) return
     await db.fillUps.delete(id)
   }
 
@@ -118,6 +131,9 @@ export default function History() {
     a.download = `fuel-saver-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
+
+    const current = await getSettings()
+    await db.settings.put({ ...current, lastBackupAt: new Date().toISOString() })
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -129,9 +145,9 @@ export default function History() {
       if (data.fillUps) {
         await db.fillUps.bulkPut(data.fillUps)
       }
-      setImportMessage(`Imported ${data.fillUps?.length ?? 0} fill-ups.`)
+      setImportMessage(t('history.imported', { count: data.fillUps?.length ?? 0 }))
     } catch (err) {
-      setImportMessage('Import failed — file is not a valid backup.')
+      setImportMessage(t('history.importFailed'))
       console.error(err)
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -141,7 +157,20 @@ export default function History() {
 
   return (
     <div>
-      <PageHeader title="History" subtitle={`${fillUps?.length ?? 0} fill-ups logged`} />
+      <PageHeader title={t('history.title')} subtitle={t('history.subtitle', { count: fillUps?.length ?? 0 })} />
+
+      {backupStatus && (
+        <div className="mx-4 mb-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-sm">
+          <p className="font-semibold text-amber-800 dark:text-amber-300">{t('history.backupTitle')}</p>
+          <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5 text-xs">
+            {backupStatus === 'never'
+              ? t('history.backupBodyNever')
+              : t('history.backupBodyStale', {
+                  date: settings?.lastBackupAt ? new Date(settings.lastBackupAt).toLocaleDateString() : '',
+                })}
+          </p>
+        </div>
+      )}
 
       <div className="px-4 flex items-center gap-2">
         <select
@@ -149,7 +178,7 @@ export default function History() {
           onChange={(e) => setBrandFilter(e.target.value)}
           className="rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2.5 py-1.5 text-sm flex-1"
         >
-          <option value="">All brands</option>
+          <option value="">{t('history.allBrands')}</option>
           {brands.map((b) => (
             <option key={b} value={b}>
               {b}
@@ -160,13 +189,13 @@ export default function History() {
           onClick={handleExport}
           className="rounded-lg bg-neutral-200 dark:bg-neutral-800 px-3 py-1.5 text-sm font-medium"
         >
-          Export
+          {t('history.export')}
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           className="rounded-lg bg-neutral-200 dark:bg-neutral-800 px-3 py-1.5 text-sm font-medium"
         >
-          Import
+          {t('history.import')}
         </button>
         <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImport} className="hidden" />
       </div>
@@ -177,7 +206,7 @@ export default function History() {
 
       <div className="px-4 mt-3 space-y-2 pb-4">
         {filtered.length === 0 && (
-          <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 mt-8">No fill-ups yet.</p>
+          <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 mt-8">{t('history.empty')}</p>
         )}
         {filtered.map((f) =>
           editingId === f.id ? (
@@ -193,7 +222,7 @@ export default function History() {
                 </p>
                 <p className="text-neutral-500 dark:text-neutral-400 text-xs mt-0.5">
                   {f.litres.toFixed(2)} L · ${f.netAmount.toFixed(2)} · {f.odometer.toLocaleString()} km
-                  {f.missedPrevious && ' · gap'}
+                  {f.missedPrevious && ` · ${t('history.gap')}`}
                 </p>
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -201,13 +230,13 @@ export default function History() {
                   onClick={() => setEditingId(f.id)}
                   className="rounded-md bg-neutral-100 dark:bg-neutral-800 px-2 py-1 text-xs font-medium"
                 >
-                  Edit
+                  {t('history.edit')}
                 </button>
                 <button
                   onClick={() => handleDelete(f.id)}
                   className="rounded-md bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-2 py-1 text-xs font-medium"
                 >
-                  Delete
+                  {t('history.delete')}
                 </button>
               </div>
             </div>

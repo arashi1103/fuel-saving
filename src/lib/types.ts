@@ -38,8 +38,12 @@ export interface Deal {
   enabled: boolean
 }
 
+export type Language = 'en' | 'zh-Hant'
+
 export interface Settings {
   id: string // singleton row, always 'settings'
   currency: string
   distanceUnit: 'km'
+  language: Language
+  lastBackupAt?: string // ISO timestamp of last successful JSON export
 }
