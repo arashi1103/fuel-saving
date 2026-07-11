@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { LangToggle } from './components/LangToggle'
-import { seedDealsIfEmpty } from './lib/db'
+import { syncSeedDeals } from './lib/db'
 import AddFillUp from './pages/AddFillUp'
 import Dashboard from './pages/Dashboard'
 import Deals from './pages/Deals'
@@ -10,7 +10,7 @@ import History from './pages/History'
 
 function App() {
   useEffect(() => {
-    seedDealsIfEmpty()
+    syncSeedDeals()
     // Ask the browser to exempt this origin's storage from automatic eviction
     // under storage pressure (best-effort; unsupported/denied browsers no-op).
     navigator.storage?.persist?.()

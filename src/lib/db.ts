@@ -123,9 +123,24 @@ const SEED_DEALS: Deal[] = [
   },
 ]
 
-export async function seedDealsIfEmpty(): Promise<void> {
-  const count = await db.deals.count()
-  if (count === 0) {
-    await db.deals.bulkPut(SEED_DEALS)
+// IDs from the original v1 seed set, superseded by the researched HK deals
+// above — dropped so returning users don't end up with duplicate/stale entries.
+const LEGACY_SEED_IDS = ['seed-caltex-saturday', 'seed-shell-placeholder', 'seed-esso-placeholder']
+
+// Adds any seed deals the user doesn't already have (matched by id) and
+// removes superseded legacy placeholders. Safe to call on every app load:
+// it never touches deals the user created or edited themselves.
+export async function syncSeedDeals(): Promise<void> {
+  const existing = await db.deals.toArray()
+  const existingIds = new Set(existing.map((d) => d.id))
+
+  const missing = SEED_DEALS.filter((d) => !existingIds.has(d.id))
+  if (missing.length > 0) {
+    await db.deals.bulkPut(missing)
+  }
+
+  const staleIds = existing.filter((d) => LEGACY_SEED_IDS.includes(d.id)).map((d) => d.id)
+  if (staleIds.length > 0) {
+    await db.deals.bulkDelete(staleIds)
   }
 }
