@@ -45,7 +45,8 @@ export default function AddFillUp() {
   const [ocrConfidence, setOcrConfidence] = useState<Record<string, boolean> | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const libraryInputRef = useRef<HTMLInputElement>(null)
 
   const lastFillUp = useLiveQuery(
     () => db.fillUps.orderBy('odometer').last(),
@@ -133,7 +134,8 @@ export default function AddFillUp() {
     setReceiptBlob(null)
     setPreviewUrl(null)
     setOcrConfidence(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (libraryInputRef.current) libraryInputRef.current.value = ''
     setTimeout(() => setSaveMessage(null), 2500)
   }
 
@@ -151,18 +153,40 @@ export default function AddFillUp() {
 
       <div className="px-4 mt-4 space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5" htmlFor="receipt-upload">
-            {t('add.receiptLabel')}
-          </label>
-          <input
-            ref={fileInputRef}
-            id="receipt-upload"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            className="block w-full text-sm text-neutral-600 dark:text-neutral-300 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-2 file:text-white file:text-sm file:font-medium"
-          />
+          <label className="block text-sm font-medium mb-1.5">{t('add.receiptLabel')}</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              ref={cameraInputRef}
+              id="receipt-camera"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="min-w-0 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2.5 px-3"
+            >
+              {t('add.takePhoto')}
+            </button>
+            <input
+              ref={libraryInputRef}
+              id="receipt-library"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => libraryInputRef.current?.click()}
+              className="min-w-0 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-sm font-medium py-2.5 px-3"
+            >
+              {t('add.chooseFromLibrary')}
+            </button>
+          </div>
           {previewUrl && (
             <img src={previewUrl} alt="Receipt preview" className="mt-2 max-h-48 rounded-lg border border-neutral-200 dark:border-neutral-800" />
           )}
@@ -211,7 +235,7 @@ export default function AddFillUp() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="block text-sm font-medium mb-1.5" htmlFor="date">
                 {t('add.date')} {confidenceBadge('date')}
               </label>
@@ -220,10 +244,10 @@ export default function AddFillUp() {
                 type="date"
                 value={form.date}
                 onChange={(e) => update('date', e.target.value)}
-                className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
+                className="block w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="block text-sm font-medium mb-1.5" htmlFor="litres">
                 {t('add.litres')} {confidenceBadge('litres')}
               </label>
@@ -235,7 +259,7 @@ export default function AddFillUp() {
                 placeholder={t('add.litresPlaceholder')}
                 value={form.litres}
                 onChange={(e) => update('litres', e.target.value)}
-                className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
+                className="block w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm"
               />
             </div>
           </div>
